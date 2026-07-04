@@ -7,16 +7,26 @@ namespace CrossTalkPatcher;
 /// </summary>
 public static class BinaryPatcher
 {
-    public record StringPair(string Find, string Replace);
+    public sealed class StringPair
+    {
+        public StringPair(string find, string replace)
+        {
+            Find = find;
+            Replace = replace;
+        }
+
+        public string Find { get; }
+        public string Replace { get; }
+    }
 
     public static readonly StringPair[] CorePairs =
     {
-        new("messenger.hotmail.com", "ms.msgrsvcs.ctsrv.gay"),
-        new("nexus.passport.com", "pp.login.ugnet.gay"),
+        new StringPair("messenger.hotmail.com", "ms.msgrsvcs.ctsrv.gay"),
+        new StringPair("nexus.passport.com", "pp.login.ugnet.gay"),
     };
 
     public static readonly StringPair GatewayPair =
-        new("gateway.messenger.hotmail.com", "httpgws.ms.msgrsvcs.ctsrv.gay");
+        new StringPair("gateway.messenger.hotmail.com", "httpgws.ms.msgrsvcs.ctsrv.gay");
 
     public static void Patch(string targetFile, bool includeGateway)
     {

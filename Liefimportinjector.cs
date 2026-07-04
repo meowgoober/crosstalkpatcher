@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Linq;
 
 namespace CrossTalkPatcher;
 
@@ -9,15 +10,29 @@ namespace CrossTalkPatcher;
 /// </summary>
 public static class LiefImportInjector
 {
+    private const string ModernPythonVersion = "3.12";
+    private const string LegacyPythonVersion = "3.8";
+    private const string Win81PythonVersion = "3.11";
+
     public static bool EnsurePythonAndLief()
     {
         string? pythonExe = FindPythonExecutable();
         if (pythonExe is null)
         {
-            Console.WriteLine("Python is required for Option 4.");
-            Console.WriteLine("Please install Python from https://www.python.org/downloads/ and make sure it is available on PATH.");
-            return false;
+            if (!TryBootstrapPython())
+            {
+                Console.WriteLine("Python is required for Option 4.");
+                Console.WriteLine($"Install Python 3.8+ (use {LegacyPythonVersion} for XP/Vista/7/8, {Win81PythonVersion} for 8.1, and {ModernPythonVersion}+ for 10/11).");
+                Console.WriteLine("Modern Windows: https://www.python.org/downloads/windows/");
+                Console.WriteLine("Legacy Windows: https://www.python.org/downloads/windows/");
+                return false;
+            }
+
+            pythonExe = FindPythonExecutable();
         }
+
+        if (pythonExe is null)
+            return false;
 
         if (IsLiefInstalled(pythonExe))
             return true;
@@ -82,37 +97,78 @@ public static class LiefImportInjector
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
+            Arguments = BuildArguments(scriptPath, exePath, dllName, functionName)
         };
-        psi.ArgumentList.Add(scriptPath);
-        psi.ArgumentList.Add(exePath);
-        psi.ArgumentList.Add(dllName);
-        psi.ArgumentList.Add(functionName);
 
-        using var process = Process.Start(psi);
-        if (process == null)
-            throw new InvalidOperationException("Failed to start the Python process.");
-
-        string stdout = process.StandardOutput.ReadToEnd();
-        string stderr = process.StandardError.ReadToEnd();
-        process.WaitForExit();
-
-        if (!string.IsNullOrWhiteSpace(stdout))
-            Console.WriteLine(stdout.TrimEnd());
-
-        if (process.ExitCode != 0)
+        using (var process = Process.Start(psi))
         {
-            throw new InvalidOperationException(
-                $"add_import.py failed (exit code {process.ExitCode}).\n{stderr}\n" +
-                "If this mentions 'No module named lief', run: pip install lief");
-        }
+            if (process == null)
+                throw new InvalidOperationException("Failed to start the Python process.");
 
-        if (!string.IsNullOrWhiteSpace(stderr))
-            Console.WriteLine($"[python stderr] {stderr.TrimEnd()}");
+            string stdout = process.StandardOutput.ReadToEnd();
+            string stderr = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+
+            if (!string.IsNullOrWhiteSpace(stdout))
+                Console.WriteLine(stdout.TrimEnd());
+
+            if (process.ExitCode != 0)
+            {
+                throw new InvalidOperationException(
+                    $"add_import.py failed (exit code {process.ExitCode}).\n{stderr}\n" +
+                    "If this mentions 'No module named lief', run: pip install lief");
+            }
+
+            if (!string.IsNullOrWhiteSpace(stderr))
+                Console.WriteLine($"[python stderr] {stderr.TrimEnd()}");
+        }
     }
 
     private static string? FindPythonExecutable()
     {
-        foreach (string candidate in new[] { "python", "python3", "py" })
+        foreach (string candidate in new[] { "python", "python3", "py", "python.exe", "python3.exe" })
+        {
+            if (string.IsNullOrWhiteSpace(candidate))
+                continue;
+
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = candidate,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    Arguments = candidate == "py" ? "-3 -c \"import sys; print(sys.executable)\"" : "-c \"import sys; print(sys.executable)\""
+                };
+
+                using (var process = Process.Start(psi))
+                {
+                    if (process is null)
+                        continue;
+
+                    string stdout = process.StandardOutput.ReadToEnd();
+                    string stderr = process.StandardError.ReadToEnd();
+                    process.WaitForExit();
+
+                    if (process.ExitCode == 0 && !string.IsNullOrWhiteSpace(stdout))
+                        return candidate;
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        return null;
+    }
+
+    private static bool TryBootstrapPython()
+    {
+        Console.WriteLine("Python was not found. Trying a guided bootstrap...");
+
+        foreach (string candidate in new[] { "winget", "powershell" })
         {
             try
             {
@@ -123,31 +179,28 @@ public static class LiefImportInjector
                     RedirectStandardError = true,
                     UseShellExecute = false,
                     CreateNoWindow = true,
+                    Arguments = candidate == "winget"
+                        ? $"install --id {GetPreferredPythonPackageId()} -e --source winget"
+                        : "-NoProfile -Command \"Get-Command winget -ErrorAction SilentlyContinue | Out-Null\""
                 };
 
-                if (candidate == "py")
-                    psi.ArgumentList.Add("-3");
+                using (var process = Process.Start(psi))
+                {
+                    if (process is null)
+                        continue;
 
-                psi.ArgumentList.Add("-c");
-                psi.ArgumentList.Add("import sys; print(sys.executable)");
-
-                using var process = Process.Start(psi);
-                if (process is null)
-                    continue;
-
-                string stdout = process.StandardOutput.ReadToEnd();
-                string stderr = process.StandardError.ReadToEnd();
-                process.WaitForExit();
-
-                if (process.ExitCode == 0 && !string.IsNullOrWhiteSpace(stdout))
-                    return candidate;
+                    process.WaitForExit();
+                    if (process.ExitCode == 0)
+                        return true;
+                }
             }
             catch
             {
             }
         }
 
-        return null;
+        Console.WriteLine("Automatic bootstrap was not available. Please install Python manually and ensure it is on PATH.");
+        return false;
     }
 
     private static bool IsLiefInstalled(string pythonExe)
@@ -169,28 +222,48 @@ public static class LiefImportInjector
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
+            Arguments = BuildArguments(pythonExe == "py" ? new[] { "-3" }.Concat(args).ToArray() : args)
         };
 
-        if (pythonExe == "py")
-            psi.ArgumentList.Add("-3");
+        using (var process = Process.Start(psi))
+        {
+            if (process == null)
+                return false;
 
-        foreach (string arg in args)
-            psi.ArgumentList.Add(arg);
+            string stdout = process.StandardOutput.ReadToEnd();
+            string stderr = process.StandardError.ReadToEnd();
+            process.WaitForExit();
 
-        using var process = Process.Start(psi);
-        if (process is null)
-            return false;
+            if (showOutput && !string.IsNullOrWhiteSpace(stdout))
+                Console.WriteLine(stdout.TrimEnd());
 
-        string stdout = process.StandardOutput.ReadToEnd();
-        string stderr = process.StandardError.ReadToEnd();
-        process.WaitForExit();
+            if (showOutput && !string.IsNullOrWhiteSpace(stderr))
+                Console.WriteLine($"[python stderr] {stderr.TrimEnd()}");
 
-        if (showOutput && !string.IsNullOrWhiteSpace(stdout))
-            Console.WriteLine(stdout.TrimEnd());
+            return process.ExitCode == 0;
+        }
+    }
 
-        if (showOutput && !string.IsNullOrWhiteSpace(stderr))
-            Console.WriteLine($"[python stderr] {stderr.TrimEnd()}");
+    private static string BuildArguments(params string[] args)
+    {
+        return string.Join(" ", args.Select(static arg => QuoteForCommandLine(arg)));
+    }
 
-        return process.ExitCode == 0;
+    private static string QuoteForCommandLine(string value)
+    {
+        return "\"" + value.Replace("\"", "\\\"") + "\"";
+    }
+
+    private static string GetPreferredPythonPackageId()
+    {
+        var osVersion = Environment.OSVersion.Version;
+
+        if (osVersion.Major >= 10)
+            return $"Python.Python.{ModernPythonVersion}";
+
+        if (osVersion.Major == 6 && osVersion.Minor == 3)
+            return $"Python.Python.{Win81PythonVersion}";
+
+        return $"Python.Python.{LegacyPythonVersion}";
     }
 }

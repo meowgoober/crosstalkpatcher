@@ -1,18 +1,34 @@
-// i think i was using this for something, i forgot.
-
-using System.Net.Http;
+using System.Net;
 
 namespace CrossTalkPatcher;
 
 public static class Downloader
 {
-    private static readonly HttpClient Client = new();
-
-    public static async Task DownloadFileAsync(string url, string destPath)
+    public static void DownloadFile(string url, string destPath)
     {
-        using var response = await Client.GetAsync(url);
-        response.EnsureSuccessStatusCode();
-        await using var fs = File.Create(destPath);
-        await response.Content.CopyToAsync(fs);
+#if NETFRAMEWORK
+        using (var client = new WebClient())
+        {
+            client.DownloadFile(url, destPath);
+        }
+#else
+        using (var client = new System.Net.Http.HttpClient())
+        {
+            using (var response = client.GetAsync(url).GetAwaiter().GetResult())
+            {
+                response.EnsureSuccessStatusCode();
+                using (var stream = response.Content.ReadAsStreamAsync().GetAwaiter().GetResult())
+                using (var file = File.Create(destPath))
+                {
+                    stream.CopyTo(file);
+                }
+            }
+        }
+#endif
+    }
+
+    public static Task DownloadFileAsync(string url, string destPath)
+    {
+        return Task.Run(() => DownloadFile(url, destPath));
     }
 }

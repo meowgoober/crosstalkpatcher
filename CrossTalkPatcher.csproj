@@ -1,23 +1,17 @@
-<!-- this is so .net knows what this actually is -->
-<!-- compiled with net10.0-windows, ill figure out a way to get the exe to work on older systems, maybe, i still got to looks for people testing. -->
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFrameworks>net10.0-windows;net48-windows</TargetFrameworks>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>CrossTalkPatcher</AssemblyName>
     <RootNamespace>CrossTalkPatcher</RootNamespace>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="AsmResolver.PE" Version="6.0.0" />
-  </ItemGroup>
   <ItemGroup>
     <None Include="add_import.py">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-
 </Project>
