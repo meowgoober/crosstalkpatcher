@@ -1,3 +1,5 @@
+<!-- this is so .net knows what this actually is -->
+<!-- compiled with net10.0-windows, ill figure out a way to get the exe to work on older systems, maybe, i still got to looks for people testing. -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
