@@ -1,0 +1,127 @@
+name: autobuilder
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PYTHON_VERSION: '3.6'
+  PYINSTALLER_VERSION: '4.10'
+  APP_NAME: 'CrossTalkPatcher'
+  ENTRYPOINT: 'program.py'
+
+jobs:
+  build:
+    name: Build ${{ matrix.target_name }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target_name: win-x64
+            python_arch: x64
+          - target_name: win-x86
+            python_arch: x86
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python 3.6
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          architecture: ${{ matrix.python_arch }}
+
+      - name: Install build dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade "pip<21" "setuptools<45" "wheel<0.38"
+          python -m pip install "pyinstaller==${{ env.PYINSTALLER_VERSION }}"
+          python -m pip install "lief==0.12.3"
+
+      - name: Build executable with PyInstaller
+        shell: pwsh
+        run: |
+          pyinstaller --noconfirm --clean --onefile `
+            --name "${{ env.APP_NAME }}-${{ matrix.target_name }}" `
+            --hidden-import=downloader `
+            --hidden-import=registry_patcher `
+            --hidden-import=binary_patcher `
+            --hidden-import=updater `
+            --hidden-import=lief `
+            --hidden-import=lief_injector `
+            --distpath .\dist `
+            ${{ env.ENTRYPOINT }}
+
+      - name: Rename artifact
+        shell: pwsh
+        run: |
+          $source = Join-Path $PWD "dist/${{ env.APP_NAME }}-${{ matrix.target_name }}.exe"
+          if (-not (Test-Path $source)) {
+            throw "Expected build output not found: $source"
+          }
+          Copy-Item $source -Destination ".\${{ env.APP_NAME }}-${{ matrix.target_name }}.exe" -Force
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-${{ matrix.target_name }}
+          path: ${{ env.APP_NAME }}-${{ matrix.target_name }}.exe
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: ./dist
+
+      - name: Determine next release version
+        id: version
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const tags = await github.paginate(github.rest.repos.listTags, { owner, repo, per_page: 100 });
+            const versions = tags
+              .map(tag => tag.name)
+              .filter(name => /^v\d+\.\d+\.\d+$/.test(name))
+              .map(name => name.slice(1).split('.').map(Number));
+
+            let [major, minor, patch] = [1, 0, 0];
+            const latest = versions.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]).pop();
+
+            if (latest) {
+              [major, minor, patch] = latest;
+            }
+
+            let candidate = [major, minor, patch + 1];
+            while (versions.some(v => v[0] === candidate[0] && v[1] === candidate[1] && v[2] === candidate[2])) {
+              candidate = [candidate[0], candidate[1], candidate[2] + 1];
+            }
+
+            const version = `${candidate[0]}.${candidate[1]}.${candidate[2]}`;
+            core.setOutput('version', version);
+            core.setOutput('tag', `v${version}`);
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.tag }}
+          files: |
+            dist/*.exe
+          generate_release_notes: true
