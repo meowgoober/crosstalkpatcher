@@ -10,9 +10,10 @@ permissions:
   contents: write
 
 env:
-  DOTNET_VERSION: '10.0.x'
+  DOTNET_VERSION: '9.0.x'
   PROJECT_PATH: './CrossTalkPatcher.csproj'
-  PUBLISH_DIR: './publish/win-x64'
+  PUBLISH_X64: './publish/win-x64'
+  PUBLISH_X86: './publish/win-x86'
 
 jobs:
   build-and-release:
@@ -64,7 +65,7 @@ jobs:
             core.setOutput('tag', `v${version}`);
             console.log(`Next release version: ${version}`);
 
-      - name: Publish single-file build
+      - name: Publish 64-bit build
         run: |
           dotnet publish "${{ env.PROJECT_PATH }}" `
             -c Release `
@@ -73,20 +74,38 @@ jobs:
             -p:PublishSingleFile=true `
             -p:IncludeNativeLibrariesForSelfExtract=true `
             -p:Version=${{ steps.version.outputs.version }} `
-            -o "${{ env.PUBLISH_DIR }}"
+            -o "${{ env.PUBLISH_X64 }}"
 
-      - name: Create ZIP archive
+      - name: Publish 32-bit build
+        run: |
+          dotnet publish "${{ env.PROJECT_PATH }}" `
+            -c Release `
+            -r win-x86 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:Version=${{ steps.version.outputs.version }} `
+            -o "${{ env.PUBLISH_X86 }}"
+
+      - name: Create ZIP archives
         shell: pwsh
         run: |
           $version = "${{ steps.version.outputs.version }}"
-          $archivePath = Join-Path $PWD "CrossTalkPatcher-v$version-win-x64.zip"
-          Compress-Archive -Path "${{ env.PUBLISH_DIR }}/*" -DestinationPath $archivePath -Force
-          echo "archive_path=$archivePath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+          $x64Archive = Join-Path $PWD "CrossTalkPatcher-v$version-win-x64.zip"
+          Compress-Archive -Path "${{ env.PUBLISH_X64 }}/*" -DestinationPath $x64Archive -Force
+          echo "archive_x64=$x64Archive" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+          $x86Archive = Join-Path $PWD "CrossTalkPatcher-v$version-win-x86.zip"
+          Compress-Archive -Path "${{ env.PUBLISH_X86 }}/*" -DestinationPath $x86Archive -Force
+          echo "archive_x86=$x86Archive" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: Release ${{ steps.version.outputs.tag }}
-          files: CrossTalkPatcher-v${{ steps.version.outputs.version }}-win-x64.zip
+          files: |
+            CrossTalkPatcher-v${{ steps.version.outputs.version }}-win-x64.zip
+            CrossTalkPatcher-v${{ steps.version.outputs.version }}-win-x86.zip
           generate_release_notes: true

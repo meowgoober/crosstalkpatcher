@@ -4,15 +4,21 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework>net461</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
     <AssemblyName>CrossTalkPatcher</AssemblyName>
     <RootNamespace>CrossTalkPatcher</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="AsmResolver.PE" Version="6.0.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- System.Net.Http must be referenced explicitly on .NET Framework -->
+    <Reference Include="System.Net.Http" />
   </ItemGroup>
   <ItemGroup>
     <None Include="add_import.py">

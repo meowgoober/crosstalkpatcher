@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Reflection;
-using System.Text.Json;
+using Newtonsoft.Json.Linq;
 
 namespace CrossTalkPatcher;
 
@@ -20,7 +20,7 @@ public static class Updater
         try
         {
             // Clean up any old update leftovers from previous runs
-            string currentExe = Environment.ProcessPath ?? "";
+            string currentExe = Assembly.GetExecutingAssembly().Location;
             if (!string.IsNullOrEmpty(currentExe))
             {
                 string oldExe = currentExe + ".old";
@@ -43,11 +43,11 @@ public static class Updater
             string response = Client.GetStringAsync("https://api.github.com/repos/meowgoober/crosstalkpatcher/releases/latest")
                 .GetAwaiter().GetResult();
 
-            using var doc = JsonDocument.Parse(response);
-            var root = doc.RootElement;
+            var root = JObject.Parse(response);
 
-            if (!root.TryGetProperty("tag_name", out var tagProp)) return;
-            string tag = tagProp.GetString() ?? "";
+            var tagToken = root["tag_name"];
+            if (tagToken == null) return;
+            string tag = tagToken.Value<string>() ?? "";
             string latestVerStr = tag.TrimStart('v');
 
             if (!Version.TryParse(latestVerStr, out var latestVersion)) return;
@@ -65,14 +65,15 @@ public static class Updater
 
                 // Find zip asset
                 string downloadUrl = "";
-                if (root.TryGetProperty("assets", out var assetsProp))
+                string expectedAssetSuffix = Environment.Is64BitProcess ? "-win-x64.zip" : "-win-x86.zip";
+                if (root["assets"] is JArray assetsProp)
                 {
-                    foreach (var asset in assetsProp.EnumerateArray())
+                    foreach (var asset in assetsProp)
                     {
-                        string name = asset.GetProperty("name").GetString() ?? "";
-                        if (name.EndsWith("-win-x64.zip", StringComparison.OrdinalIgnoreCase))
+                        string name = asset["name"]?.Value<string>() ?? "";
+                        if (name.EndsWith(expectedAssetSuffix, StringComparison.OrdinalIgnoreCase))
                         {
-                            downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
+                            downloadUrl = asset["browser_download_url"]?.Value<string>() ?? "";
                             break;
                         }
                     }
@@ -80,7 +81,7 @@ public static class Updater
 
                 if (string.IsNullOrEmpty(downloadUrl))
                 {
-                    Console.WriteLine("Could not find the x64 zip asset in the latest release.");
+                    Console.WriteLine($"Could not find the {expectedAssetSuffix} asset in the latest release.");
                     Thread.Sleep(2000);
                     return;
                 }
@@ -146,7 +147,8 @@ public static class Updater
 
             // Rename running executable
             string oldExePath = currentExePath + ".old";
-            File.Move(currentExePath, oldExePath, overwrite: true);
+            if (File.Exists(oldExePath)) File.Delete(oldExePath);
+            File.Move(currentExePath, oldExePath);
 
             // Copy new executable
             File.Copy(newExe, currentExePath, overwrite: true);
@@ -174,7 +176,8 @@ public static class Updater
                 string oldExePath = currentExePath + ".old";
                 if (File.Exists(oldExePath))
                 {
-                    File.Move(oldExePath, currentExePath, overwrite: true);
+                    if (File.Exists(currentExePath)) File.Delete(currentExePath);
+                    File.Move(oldExePath, currentExePath);
                 }
             }
             catch {}

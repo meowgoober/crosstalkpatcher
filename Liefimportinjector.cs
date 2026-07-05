@@ -14,9 +14,14 @@ public static class LiefImportInjector
         string? pythonExe = FindPythonExecutable();
         if (pythonExe is null)
         {
-            Console.WriteLine("Python is required for Option 4.");
-            Console.WriteLine("Please install Python from https://www.python.org/downloads/ and make sure it is available on PATH.");
-            return false;
+            Console.WriteLine("Python was not found on PATH.");
+            pythonExe = PythonInstaller.TryInstall();
+            if (pythonExe is null)
+            {
+                Console.WriteLine("Please install Python manually from https://www.python.org/downloads/");
+                Console.WriteLine("and make sure it is added to PATH, then re-run this option.");
+                return false;
+            }
         }
 
         if (IsLiefInstalled(pythonExe))
@@ -78,15 +83,12 @@ public static class LiefImportInjector
         var psi = new ProcessStartInfo
         {
             FileName = pythonExe,
+            Arguments = BuildArguments(scriptPath, exePath, dllName, functionName),
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
         };
-        psi.ArgumentList.Add(scriptPath);
-        psi.ArgumentList.Add(exePath);
-        psi.ArgumentList.Add(dllName);
-        psi.ArgumentList.Add(functionName);
 
         using var process = Process.Start(psi);
         if (process == null)
@@ -119,17 +121,14 @@ public static class LiefImportInjector
                 var psi = new ProcessStartInfo
                 {
                     FileName = candidate,
+                    Arguments = candidate == "py"
+                        ? BuildArguments("-3", "-c", "import sys; print(sys.executable)")
+                        : BuildArguments("-c", "import sys; print(sys.executable)"),
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
                     CreateNoWindow = true,
                 };
-
-                if (candidate == "py")
-                    psi.ArgumentList.Add("-3");
-
-                psi.ArgumentList.Add("-c");
-                psi.ArgumentList.Add("import sys; print(sys.executable)");
 
                 using var process = Process.Start(psi);
                 if (process is null)
@@ -162,20 +161,16 @@ public static class LiefImportInjector
 
     private static bool RunPythonCommand(string pythonExe, string[] args, bool showOutput)
     {
+        string pyPrefix = pythonExe == "py" ? EscapeArg("-3") + " " : "";
         var psi = new ProcessStartInfo
         {
             FileName = pythonExe,
+            Arguments = pyPrefix + BuildArguments(args),
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
         };
-
-        if (pythonExe == "py")
-            psi.ArgumentList.Add("-3");
-
-        foreach (string arg in args)
-            psi.ArgumentList.Add(arg);
 
         using var process = Process.Start(psi);
         if (process is null)
@@ -193,4 +188,23 @@ public static class LiefImportInjector
 
         return process.ExitCode == 0;
     }
+
+    // Windows command-line quoting helpers (replacement for ProcessStartInfo.ArgumentList
+    // which only exists in .NET Core / .NET 5+).
+    private static string EscapeArg(string arg)
+    {
+        if (arg.Length > 0 && !arg.Contains(' ') && !arg.Contains('"') && !arg.Contains('\t'))
+            return arg;
+        // Wrap in quotes and escape any embedded backslash-quote sequences.
+        return '"' + arg.Replace("\\\"", "\\\\\"").Replace("\"", "\\\"") + '"';
+    }
+
+    private static string BuildArguments(params string[] args)
+    {
+        var parts = new string[args.Length];
+        for (int i = 0; i < args.Length; i++)
+            parts[i] = EscapeArg(args[i]);
+        return string.Join(" ", parts);
+    }
+
 }

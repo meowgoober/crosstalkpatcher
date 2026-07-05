@@ -12,7 +12,7 @@ public static class Downloader
     {
         using var response = await Client.GetAsync(url);
         response.EnsureSuccessStatusCode();
-        await using var fs = File.Create(destPath);
+        using var fs = File.Create(destPath);
         await response.Content.CopyToAsync(fs);
     }
 }

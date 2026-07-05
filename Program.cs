@@ -2,6 +2,7 @@
 // you know it
 
 using System.Diagnostics;
+using System.Net;
 using System.Security.Principal;
 
 namespace CrossTalkPatcher;
@@ -10,6 +11,10 @@ public static class Program
 {
     public static void Main()
     {
+        // Force TLS 1.2 — .NET Framework on Vista defaults to TLS 1.0 which
+        // modern servers (GitHub API, CrossTalk storage) no longer accept.
+        ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
         Updater.CheckForUpdates();
 
         if (!IsAdministrator())
