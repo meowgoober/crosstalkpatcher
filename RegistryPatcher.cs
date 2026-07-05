@@ -17,7 +17,7 @@ public static class RegistryPatcher
     public static bool UpdateMsnServerIfPresent()
     {
         using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\MessengerService", writable: true);
-        if (key == null || key.GetValue("Server") == null)
+        if (key == null)
             return false;
 
         key.SetValue("Server", CrossTalkHost, RegistryValueKind.String);
