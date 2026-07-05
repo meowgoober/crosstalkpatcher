@@ -8,7 +8,7 @@ on:
     paths-ignore:
       - 'Readme.md'
       - '.gitignore'
-      - '.github/workflows/**'  # Optional: ignores changes to the workflow file itself
+      - '.github/workflows/**'  
   workflow_dispatch:
 
 permissions:
@@ -94,7 +94,7 @@ jobs:
             --self-contained true `
             -p:PublishSingleFile=true `
             -p:Version=${{ steps.version.outputs.version }} `
-            -o "${{ env.PUBLISH_NET8_X86 }}"
+            -o "${{ env.PUBLISH_NET6_X86 }}"
 
       - name: Publish .NET 8 self-contained single-file (x64)
         run: |
