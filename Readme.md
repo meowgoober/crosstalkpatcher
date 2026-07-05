@@ -1,69 +1,38 @@
+wip readme.
+
+
 # crosstalk patcher
 
-crosstalk patcher is a utility for patching supported messenger clients that you would need to patch manually so they can connect to crosstalk services automatically. note: the project has been migrated from .net to python, and the main user-facing entrypoint is [program.py](program.py), so be familliar with it.
+this is an automatic patcher for crosstalk supported clients.
+it helps patch supported clients so they can connect to crosstalk services.
 
-## what this tool does
+## build
 
-the app provides a menu-driven interface for:
+this project requires the .net 10 sdk.
 
-- patching older msn messenger versions
-- patching newer msn/windows messenger builds
-- patching yahoo messenger legacy targets
-- etc.
-
-## requirements
-
-- windows
-- python 3.6 or later for local use (you would not need this for the releases premade installs, only for running from source and building with pyinstaller.)
-- administrator privileges are recommended for registry and program files modifications
-
-## recommended: install from releases
-1. go to releases tab,
-2. choose either 64 bit or 32 bit depending on your system
-3. run and use.
-
-## running from source
-
-1. clone or download this repository.
-2. open a terminal in the project folder.
-3. install the required python dependencies if needed:
+1. download and install the .net 10 sdk from https://dotnet.microsoft.com/download/dotnet/10.0.
+2. open the project folder on your computer. if you downloaded it from github, this is the folder that contains the .csproj file.
+3. open a terminal or command prompt inside that folder.
+4. run:
 
 ```bash
-pip install pyinstaller==4.10 lief==0.12.3
+dotnet build
 ```
 
-4. run the main interface:
+this will build the executable into the bin/debug/net10.0-windows folder.
 
-```bash
-python program.py
-```
+## run from github releases
 
-## building a standalone executable
+1. go to the github releases tab for this project.
+2. download the latest release zip or exe.
+3. extract it if needed.
+4. run the executable from the release package. AS ADMIN. dont forget that.
 
-this project can be packaged into a single-file windows executable with pyinstaller.
+my server:
+https://discord.gg/dnfGVjJ8r3
 
-```bash
-pyinstaller --onefile --noconfirm --clean program.py
-```
+crosstalk server:
+https://discord.gg/2bbHHP7TaS
 
-the generated executable will be placed in the `dist` folder.
-
-## github releases
-
-github actions builds are configured to produce standalone exes for:
-
-- windows x64
-- windows x86
-
-these builds are published automatically to github releases when the workflow runs.
-
-## notes
-
-- for options that write into program files or the registry, run the program as administrator.
-- the workflow is designed around python packaging rather than the old .net build pipeline.
-
-## links
-
-- my server: https://discord.gg/dnfGVjJ8r3
-- crosstalk server: https://discord.gg/2bbHHP7TaS
-- crosstalk: https://crosstalk.im/
+crosstalk:
+https://crosstalk.im/
