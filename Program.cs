@@ -82,6 +82,7 @@ public static class Program
     private static void MidMsn()
     {
         Console.Write("NOTE: this may or may not work for you, it might patch when you first install messenger but when you uninstall and install it it might not patch it.");
+        Console.WriteLine();
         Console.Write("Full path to msnmsgr.exe: ");
         string exePath = Console.ReadLine() ?? "";
 
