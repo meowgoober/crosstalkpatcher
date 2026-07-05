@@ -94,6 +94,8 @@ public static class Updater
             // Fail silently so it doesn't crash the patcher if offline
             #if DEBUG
             Console.WriteLine($"Updater check failed: {ex.Message}");
+            #else
+            _ = ex;
             #endif
         }
     }
