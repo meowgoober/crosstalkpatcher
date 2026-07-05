@@ -10,23 +10,13 @@ permissions:
   contents: write
 
 env:
-  PYTHON_VERSION: '3.6'
-  PYINSTALLER_VERSION: '4.10'
-  APP_NAME: 'CrossTalkPatcher'
-  ENTRYPOINT: 'program.py'
+  DOTNET_VERSION: '10.0.x'
+  PROJECT_PATH: './CrossTalkPatcher.csproj'
+  PUBLISH_DIR: './publish/win-x64'
 
 jobs:
-  build:
-    name: Build ${{ matrix.target_name }}
+  build-and-release:
     runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - target_name: win-x64
-            python_arch: x64
-          - target_name: win-x86
-            python_arch: x86
 
     steps:
       - name: Checkout repository
@@ -34,60 +24,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Python 3.6
-        uses: actions/setup-python@v5
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          architecture: ${{ matrix.python_arch }}
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Install build dependencies
-        shell: pwsh
-        run: |
-          python -m pip install --upgrade "pip<21" "setuptools<45" "wheel<0.38"
-          python -m pip install "pyinstaller==${{ env.PYINSTALLER_VERSION }}"
-          python -m pip install "lief==0.12.3"
+      - name: Restore dependencies
+        run: dotnet restore "${{ env.PROJECT_PATH }}"
 
-      - name: Build executable with PyInstaller
-        shell: pwsh
-        run: |
-          pyinstaller --noconfirm --clean --onefile `
-            --name "${{ env.APP_NAME }}-${{ matrix.target_name }}" `
-            --hidden-import=downloader `
-            --hidden-import=registry_patcher `
-            --hidden-import=binary_patcher `
-            --hidden-import=updater `
-            --hidden-import=lief `
-            --hidden-import=lief_injector `
-            --distpath .\dist `
-            ${{ env.ENTRYPOINT }}
-
-      - name: Rename artifact
-        shell: pwsh
-        run: |
-          $source = Join-Path $PWD "dist/${{ env.APP_NAME }}-${{ matrix.target_name }}.exe"
-          if (-not (Test-Path $source)) {
-            throw "Expected build output not found: $source"
-          }
-          Copy-Item $source -Destination ".\${{ env.APP_NAME }}-${{ matrix.target_name }}.exe" -Force
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.APP_NAME }}-${{ matrix.target_name }}
-          path: ${{ env.APP_NAME }}-${{ matrix.target_name }}.exe
-          if-no-files-found: error
-
-  release:
-    name: Publish release
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          merge-multiple: true
-          path: ./dist
+      - name: Build project
+        run: dotnet build "${{ env.PROJECT_PATH }}" -c Release --no-restore
 
       - name: Determine next release version
         id: version
@@ -116,12 +62,31 @@ jobs:
             const version = `${candidate[0]}.${candidate[1]}.${candidate[2]}`;
             core.setOutput('version', version);
             core.setOutput('tag', `v${version}`);
+            console.log(`Next release version: ${version}`);
+
+      - name: Publish single-file build
+        run: |
+          dotnet publish "${{ env.PROJECT_PATH }}" `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:Version=${{ steps.version.outputs.version }} `
+            -o "${{ env.PUBLISH_DIR }}"
+
+      - name: Create ZIP archive
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $archivePath = Join-Path $PWD "CrossTalkPatcher-v$version-win-x64.zip"
+          Compress-Archive -Path "${{ env.PUBLISH_DIR }}/*" -DestinationPath $archivePath -Force
+          echo "archive_path=$archivePath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: Release ${{ steps.version.outputs.tag }}
-          files: |
-            dist/*.exe
+          files: CrossTalkPatcher-v${{ steps.version.outputs.version }}-win-x64.zip
           generate_release_notes: true
