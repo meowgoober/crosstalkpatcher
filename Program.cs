@@ -10,6 +10,8 @@ public static class Program
 {
     public static void Main()
     {
+        Updater.CheckForUpdates();
+
         if (!IsAdministrator())
         {
             Console.WriteLine("Note: not running as Administrator. Options 2 and 4 write into");
