@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Net.Http;
 using System.Reflection;
 using Newtonsoft.Json.Linq;
+using System.Runtime.InteropServices;
 
 namespace CrossTalkPatcher;
 
@@ -63,25 +64,46 @@ public static class Updater
                 string? input = Console.ReadLine()?.Trim().ToLower();
                 if (input == "n") return;
 
-                // Find zip asset
+                // Find zip asset. Prefer an asset matching the runtime framework and CPU.
                 string downloadUrl = "";
-                string expectedAssetSuffix = Environment.Is64BitProcess ? "-win-x64.zip" : "-win-x86.zip";
+                string bitSuffix = Environment.Is64BitProcess ? "win-x64.zip" : "win-x86.zip";
+
+                var candidates = new List<string>();
+                string frameworkDesc = RuntimeInformation.FrameworkDescription ?? "";
+
+                if (frameworkDesc.IndexOf(".NET Framework", StringComparison.OrdinalIgnoreCase) >= 0)
+                    candidates.Add($"-legacy-{bitSuffix}");
+                if (frameworkDesc.IndexOf("8.", StringComparison.OrdinalIgnoreCase) >= 0)
+                    candidates.Add($"-net8-{bitSuffix}");
+                if (frameworkDesc.IndexOf("6.", StringComparison.OrdinalIgnoreCase) >= 0)
+                    candidates.Add($"-net6-{bitSuffix}");
+
+                // Generic fallbacks (self-contained builds and older releases)
+                candidates.Add($"-net6-{bitSuffix}");
+                candidates.Add($"-net8-{bitSuffix}");
+                candidates.Add($"-legacy-{bitSuffix}");
+                candidates.Add($"-{bitSuffix}"); // original naming used -win-x64.zip
+
                 if (root["assets"] is JArray assetsProp)
                 {
-                    foreach (var asset in assetsProp)
+                    foreach (var candidate in candidates)
                     {
-                        string name = asset["name"]?.Value<string>() ?? "";
-                        if (name.EndsWith(expectedAssetSuffix, StringComparison.OrdinalIgnoreCase))
+                        foreach (var asset in assetsProp)
                         {
-                            downloadUrl = asset["browser_download_url"]?.Value<string>() ?? "";
-                            break;
+                            string name = asset["name"]?.Value<string>() ?? "";
+                            if (name.EndsWith(candidate, StringComparison.OrdinalIgnoreCase))
+                            {
+                                downloadUrl = asset["browser_download_url"]?.Value<string>() ?? "";
+                                break;
+                            }
                         }
+                        if (!string.IsNullOrEmpty(downloadUrl)) break;
                     }
                 }
 
                 if (string.IsNullOrEmpty(downloadUrl))
                 {
-                    Console.WriteLine($"Could not find the {expectedAssetSuffix} asset in the latest release.");
+                    Console.WriteLine("Could not find a matching release asset in the latest release.");
                     Thread.Sleep(2000);
                     return;
                 }

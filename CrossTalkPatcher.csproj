@@ -15,6 +15,7 @@
   <ItemGroup>
     <PackageReference Include="AsmResolver.PE" Version="6.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" />
   </ItemGroup>
   <ItemGroup>
     <!-- System.Net.Http must be referenced explicitly on .NET Framework -->

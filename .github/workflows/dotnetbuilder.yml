@@ -12,8 +12,12 @@ permissions:
 env:
   DOTNET_VERSION: '9.0.x'
   PROJECT_PATH: './CrossTalkPatcher.csproj'
-  PUBLISH_X64: './publish/win-x64'
-  PUBLISH_X86: './publish/win-x86'
+  PUBLISH_NET6_X64: './publish/net6/win-x64'
+  PUBLISH_NET6_X86: './publish/net6/win-x86'
+  PUBLISH_NET8_X64: './publish/net8/win-x64'
+  PUBLISH_NET8_X86: './publish/net8/win-x86'
+  PUBLISH_LEGACY_X64: './publish/legacy/win-x64'
+  PUBLISH_LEGACY_X86: './publish/legacy/win-x86'
 
 jobs:
   build-and-release:
@@ -65,34 +69,96 @@ jobs:
             core.setOutput('tag', `v${version}`);
             console.log(`Next release version: ${version}`);
 
-      - name: Publish 64-bit build
+      - name: Publish .NET 6 self-contained single-file (x64)
         run: |
           dotnet publish "${{ env.PROJECT_PATH }}" `
             -c Release `
+            -f net6.0-windows `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:Version=${{ steps.version.outputs.version }} `
+            -o "${{ env.PUBLISH_NET6_X64 }}"
+
+      - name: Publish .NET 6 self-contained single-file (x86)
+        run: |
+          dotnet publish "${{ env.PROJECT_PATH }}" `
+            -c Release `
+            -f net6.0-windows `
+            -r win-x86 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:Version=${{ steps.version.outputs.version }} `
+            -o "${{ env.PUBLISH_NET6_X86 }}"
+
+      - name: Publish .NET 8 self-contained single-file (x64)
+        run: |
+          dotnet publish "${{ env.PROJECT_PATH }}" `
+            -c Release `
+            -f net8.0-windows `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:Version=${{ steps.version.outputs.version }} `
+            -o "${{ env.PUBLISH_NET8_X64 }}"
+
+      - name: Publish .NET 8 self-contained single-file (x86)
+        run: |
+          dotnet publish "${{ env.PROJECT_PATH }}" `
+            -c Release `
+            -f net8.0-windows `
+            -r win-x86 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:Version=${{ steps.version.outputs.version }} `
+            -o "${{ env.PUBLISH_NET8_X86 }}"
+
+      - name: Publish legacy net461 (x64)
+        run: |
+          dotnet publish "${{ env.PROJECT_PATH }}" `
+            -c Release `
+            -f net461 `
             -r win-x64 `
             -p:Version=${{ steps.version.outputs.version }} `
-            -o "${{ env.PUBLISH_X64 }}"
+            -o "${{ env.PUBLISH_LEGACY_X64 }}"
 
-      - name: Publish 32-bit build
+      - name: Publish legacy net461 (x86)
         run: |
           dotnet publish "${{ env.PROJECT_PATH }}" `
             -c Release `
+            -f net461 `
             -r win-x86 `
             -p:Version=${{ steps.version.outputs.version }} `
-            -o "${{ env.PUBLISH_X86 }}"
+            -o "${{ env.PUBLISH_LEGACY_X86 }}"
 
       - name: Create ZIP archives
         shell: pwsh
         run: |
           $version = "${{ steps.version.outputs.version }}"
 
-          $x64Archive = Join-Path $PWD "CrossTalkPatcher-v$version-win-x64.zip"
-          Compress-Archive -Path "${{ env.PUBLISH_X64 }}/*" -DestinationPath $x64Archive -Force
-          echo "archive_x64=$x64Archive" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          $x64_net6 = Join-Path $PWD "CrossTalkPatcher-v$version-net6-win-x64.zip"
+          Compress-Archive -Path "${{ env.PUBLISH_NET6_X64 }}/*" -DestinationPath $x64_net6 -Force
+          echo "archive_net6_x64=$x64_net6" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
-          $x86Archive = Join-Path $PWD "CrossTalkPatcher-v$version-win-x86.zip"
-          Compress-Archive -Path "${{ env.PUBLISH_X86 }}/*" -DestinationPath $x86Archive -Force
-          echo "archive_x86=$x86Archive" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          $x86_net6 = Join-Path $PWD "CrossTalkPatcher-v$version-net6-win-x86.zip"
+          Compress-Archive -Path "${{ env.PUBLISH_NET6_X86 }}/*" -DestinationPath $x86_net6 -Force
+          echo "archive_net6_x86=$x86_net6" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+          $x64_net8 = Join-Path $PWD "CrossTalkPatcher-v$version-net8-win-x64.zip"
+          Compress-Archive -Path "${{ env.PUBLISH_NET8_X64 }}/*" -DestinationPath $x64_net8 -Force
+          echo "archive_net8_x64=$x64_net8" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+          $x86_net8 = Join-Path $PWD "CrossTalkPatcher-v$version-net8-win-x86.zip"
+          Compress-Archive -Path "${{ env.PUBLISH_NET8_X86 }}/*" -DestinationPath $x86_net8 -Force
+          echo "archive_net8_x86=$x86_net8" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+          $x64_legacy = Join-Path $PWD "CrossTalkPatcher-v$version-legacy-win-x64.zip"
+          Compress-Archive -Path "${{ env.PUBLISH_LEGACY_X64 }}/*" -DestinationPath $x64_legacy -Force
+          echo "archive_legacy_x64=$x64_legacy" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+          $x86_legacy = Join-Path $PWD "CrossTalkPatcher-v$version-legacy-win-x86.zip"
+          Compress-Archive -Path "${{ env.PUBLISH_LEGACY_X86 }}/*" -DestinationPath $x86_legacy -Force
+          echo "archive_legacy_x86=$x86_legacy" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
@@ -100,6 +166,10 @@ jobs:
           tag_name: ${{ steps.version.outputs.tag }}
           name: Release ${{ steps.version.outputs.tag }}
           files: |
-            CrossTalkPatcher-v${{ steps.version.outputs.version }}-win-x64.zip
-            CrossTalkPatcher-v${{ steps.version.outputs.version }}-win-x86.zip
+            CrossTalkPatcher-v${{ steps.version.outputs.version }}-net6-win-x64.zip
+            CrossTalkPatcher-v${{ steps.version.outputs.version }}-net6-win-x86.zip
+            CrossTalkPatcher-v${{ steps.version.outputs.version }}-net8-win-x64.zip
+            CrossTalkPatcher-v${{ steps.version.outputs.version }}-net8-win-x86.zip
+            CrossTalkPatcher-v${{ steps.version.outputs.version }}-legacy-win-x64.zip
+            CrossTalkPatcher-v${{ steps.version.outputs.version }}-legacy-win-x86.zip
           generate_release_notes: true

@@ -1,38 +1,44 @@
+ # crosstalk patcher
+
 wip readme.
-
-
-# crosstalk patcher
-
 this is an automatic patcher for crosstalk supported clients.
 it helps patch supported clients so they can connect to crosstalk services.
 
-## build
+## releases
 
-this project requires the .net 10 sdk.
+each github release contains multiple zip artifacts targeting different runtimes and cpu architectures:
 
-1. download and install the .net 10 sdk from https://dotnet.microsoft.com/download/dotnet/10.0.
-2. open the project folder on your computer. if you downloaded it from github, this is the folder that contains the .csproj file.
-3. open a terminal or command prompt inside that folder.
-4. run:
+- `-net6-win-x64.zip` / `-net6-win-x86.zip` — self-contained single-file executables built for .net 6 (no dotnet install required).
+- `-net8-win-x64.zip` / `-net8-win-x86.zip` — self-contained single-file executables built for .net 8 (no dotnet install required).
+- `-legacy-win-x64.zip` / `-legacy-win-x86.zip` — legacy builds targeting .net framework 4.6.1 (require .net framework installed).
 
-```bash
-dotnet build
+pick the archive that matches the os (x86/x64) and preferred runtime.
+
+## build (developer)
+
+you can build locally; to produce the same artifacts as ci you should have a recent dotnet sdk (9.x) installed so multi-targeting works.
+
+to build a release locally:
+
+```powershell
+dotnet build CrossTalkPatcher.csproj -c Release
 ```
 
-this will build the executable into the bin/debug/net10.0-windows folder.
+the ci workflow produces self-contained single-file builds for net6 and net8, and legacy framework builds for compatibility.
 
-## run from github releases
+## updater behavior
 
-1. go to the github releases tab for this project.
-2. download the latest release zip or exe.
-3. extract it if needed.
-4. run the executable from the release package. AS ADMIN. dont forget that.
+the built-in auto-updater detects which runtime the running executable uses and chooses the matching release artifact when downloading updates:
 
-my server:
-https://discord.gg/dnfGVjJ8r3
+- running a net6 or net8 self-contained exe -> updater will try to download the corresponding `-net6-...` or `-net8-...` zip.
+- running a legacy net framework exe -> updater will try to download the `-legacy-...` zip.
 
-crosstalk server:
-https://discord.gg/2bbHHP7TaS
+if an exact match isn't available, the updater falls back to older naming patterns so older releases remain compatible.
 
-crosstalk:
-https://crosstalk.im/
+## support
+
+discord invite: https://discord.gg/dnfGVjJ8r3
+
+crosstalk server: https://discord.gg/2bbHHP7TaS
+
+crosstalk: https://crosstalk.im/
