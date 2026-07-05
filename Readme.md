@@ -26,6 +26,25 @@ dotnet build CrossTalkPatcher.csproj -c Release
 
 the ci workflow produces self-contained single-file builds for net6 and net8, and legacy framework builds for compatibility.
 
+## compatibility
+
+choose the archive that matches the runtime and cpu. brief compatibility notes and requirements:
+
+- net6 (self-contained single-file): no dotnet install required. typically runs on windows 7 sp1 and later; windows 10+ is recommended. use this for machines where installing dotnet is not possible.
+- net8 (self-contained single-file): no dotnet install required. generally recommended for windows 10 or later.
+- legacy (net461): requires the .net framework 4.6.1 (or newer) to be installed on the machine; this is the best option for older windows systems where newer dotnet runtimes are not available.
+
+
+
+the following table summarizes typical minimum windows versions and where to find the official microsoft support matrix for each runtime. always consult the microsoft docs for the definitive, up-to-date list.
+
+| runtime | typical minimum windows versions | notes / microsoft docs |
+|---|---|---|
+| net8 (self-contained) | windows 10 (or later) | recommended for modern systems; see https://learn.microsoft.com/dotnet/core/install/windows for exact supported windows versions for .net 8 |
+| net6 (self-contained) | windows 7 sp1 (with updates) through windows 11 depending on platform support | .net 6 is out of support as of its EOL date; see https://learn.microsoft.com/dotnet/core/install/windows for details and exact OS support matrix |
+| legacy (net461) | windows 7 sp1 through windows 10 / server equivalents | requires .net framework 4.6.1 installed; see https://learn.microsoft.com/dotnet/framework/get-started/system-requirements for framework system requirements |
+
+
 ## updater behavior
 
 the built-in auto-updater detects which runtime the running executable uses and chooses the matching release artifact when downloading updates:
@@ -42,3 +61,4 @@ discord invite: https://discord.gg/dnfGVjJ8r3
 crosstalk server: https://discord.gg/2bbHHP7TaS
 
 crosstalk: https://crosstalk.im/
+
