@@ -1,0 +1,91 @@
+name: autobuilder
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  PROJECT_PATH: './CrossTalkPatcher.csproj'
+  PUBLISH_DIR: './publish/win-x64'
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore "${{ env.PROJECT_PATH }}"
+
+      - name: Build project
+        run: dotnet build "${{ env.PROJECT_PATH }}" -c Release --no-restore
+
+      - name: Determine next release version
+        id: version
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const tags = await github.paginate(github.rest.repos.listTags, { owner, repo, per_page: 100 });
+            const versions = tags
+              .map(tag => tag.name)
+              .filter(name => /^v\d+\.\d+\.\d+$/.test(name))
+              .map(name => name.slice(1).split('.').map(Number));
+
+            let [major, minor, patch] = [1, 0, 0];
+            const latest = versions.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]).pop();
+
+            if (latest) {
+              [major, minor, patch] = latest;
+            }
+
+            let candidate = [major, minor, patch + 1];
+            while (versions.some(v => v[0] === candidate[0] && v[1] === candidate[1] && v[2] === candidate[2])) {
+              candidate = [candidate[0], candidate[1], candidate[2] + 1];
+            }
+
+            const version = `${candidate[0]}.${candidate[1]}.${candidate[2]}`;
+            core.setOutput('version', version);
+            core.setOutput('tag', `v${version}`);
+            console.log(`Next release version: ${version}`);
+
+      - name: Publish single-file build
+        run: |
+          dotnet publish "${{ env.PROJECT_PATH }}" `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -o "${{ env.PUBLISH_DIR }}"
+
+      - name: Create ZIP archive
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $archivePath = Join-Path $PWD "CrossTalkPatcher-v$version-win-x64.zip"
+          Compress-Archive -Path "${{ env.PUBLISH_DIR }}/*" -DestinationPath $archivePath -Force
+          echo "archive_path=$archivePath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.tag }}
+          files: CrossTalkPatcher-v${{ steps.version.outputs.version }}-win-x64.zip
+          generate_release_notes: true
