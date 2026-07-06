@@ -45,15 +45,6 @@ the following table summarizes typical minimum windows versions and where to fin
 | legacy (net461) | windows 7 sp1 through windows 10 / server equivalents | requires .net framework 4.6.1 installed; see https://learn.microsoft.com/dotnet/framework/get-started/system-requirements for framework system requirements |
 
 
-## updater behavior
-
-the built-in auto-updater detects which runtime the running executable uses and chooses the matching release artifact when downloading updates:
-
-- running a net6 or net8 self-contained exe -> updater will try to download the corresponding `-net6-...` or `-net8-...` zip.
-- running a legacy net framework exe -> updater will try to download the `-legacy-...` zip.
-
-if an exact match isn't available, the updater falls back to older naming patterns so older releases remain compatible.
-
 ## support
 
 discord invite: https://discord.gg/dnfGVjJ8r3
