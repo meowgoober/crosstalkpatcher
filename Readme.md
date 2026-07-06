@@ -42,7 +42,7 @@ the following table summarizes typical minimum windows versions and where to fin
 |---|---|---|
 | net8 (self-contained) | windows 10 (or later) | recommended for modern systems; see https://learn.microsoft.com/dotnet/core/install/windows for exact supported windows versions for .net 8 |
 | net6 (self-contained) | windows 7 sp1 (with updates) through windows 11 depending on platform support | .net 6 is out of support as of its EOL date; see https://learn.microsoft.com/dotnet/core/install/windows for details and exact OS support matrix |
-| legacy (net461) | windows 7 sp1 through windows 10 / server equivalents | requires .net framework 4.6.1 installed; see https://learn.microsoft.com/dotnet/framework/get-started/system-requirements for framework system requirements |
+| legacy (net461) | windows vista sp2 through windows 10 / server equivalents | requires .net framework 4.6.1 installed; see https://learn.microsoft.com/dotnet/framework/get-started/system-requirements for framework system requirements |
 
 
 ## support
