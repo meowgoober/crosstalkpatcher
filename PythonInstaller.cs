@@ -22,7 +22,7 @@ public static class PythonInstaller
     private readonly record struct PythonRelease(string Version, string X86Url, string X64Url);
 
     // Fallback versions used when the live API cannot be reached.
-    private const string FallbackVista  = "3.8.10";
+    private const string FallbackVista  = "3.6.8";
     private const string FallbackWin7   = "3.12.9";
     private const string FallbackModern = "3.13.3";
 
