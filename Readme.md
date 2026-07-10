@@ -49,7 +49,9 @@ the following table summarizes typical minimum windows versions and where to fin
 
 discord invite: https://discord.gg/dnfGVjJ8r3
 
-crosstalk server: https://discord.gg/2bbHHP7TaS
+crosstalk server (read only): https://discord.gg/2bbHHP7TaS
+
+crosstalk irc: https://crosstalk.im/community
 
 crosstalk: https://crosstalk.im/
 
