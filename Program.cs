@@ -38,10 +38,9 @@ public static class Program
             Console.WriteLine("  3. Yahoo! Messenger 5/6 legacy method  (registry)");
             Console.WriteLine("  4. Reroute setup for MSN 5+ / Yahoo (auto-download, copy, configure, PE patch)");
             Console.WriteLine("  5. AIM / OSCAR");
-            Console.WriteLine("  6. Join the developers' Discord server");
-            Console.WriteLine("  7. Join CrossTalk's official Discord server");
-            Console.WriteLine("  8. Visit crosstalk.im");
-            Console.WriteLine("  9. Download a client");
+            Console.WriteLine("  6. Join CrossTalk's official IRC");
+            Console.WriteLine("  7. Visit crosstalk.im");
+            Console.WriteLine("  8. Download a client");
             Console.WriteLine("  0. Exit");
             Console.WriteLine("============================================");
             Console.Write("Select an option: ");
@@ -56,10 +55,9 @@ public static class Program
                     case "3": OldYahoo(); break;
                     case "4": Reroute(); break;
                     case "5": Aim(); break;
-                    case "6": OpenUrl("https://discord.gg/dnfGVjJ8r3"); break;
-                    case "7": OpenUrl("https://discord.gg/2bbHHP7TaS"); break;
-                    case "8": OpenUrl("https://crosstalk.im/"); break;
-                    case "9": ClientDownloads(); break;
+                    case "6": OpenUrl("https://crosstalk.im/community"); break;
+                    case "7": OpenUrl("https://crosstalk.im/"); break;
+                    case "8": ClientDownloads(); break;
                     case "0": return;
                     default: break;
                 }
@@ -69,7 +67,7 @@ public static class Program
                 Console.WriteLine($"Error: {ex.Message}");
             }
 
-            if (choice != "0" && choice != "5" && choice != "6" && choice != "7" && choice != "8" && choice != "9")
+            if (choice != "0" && choice != "5" && choice != "6" && choice != "7" && choice != "8")
             {
                 Console.WriteLine();
                 Console.WriteLine("Press Enter to continue...");
@@ -250,7 +248,6 @@ public static class Program
         Console.WriteLine("Crosstalk has disabled this and is only for testing. Returning to main menu.");
         Thread.Sleep(1500);
     }
-    // What? You think you were actually gonna get AIM? Didnt crosstalk say its disabled? Yeah they did, i dont know why this is still in the menu.
 
     private static void ClientDownloads()
     {
