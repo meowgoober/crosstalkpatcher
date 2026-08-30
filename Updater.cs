@@ -20,7 +20,7 @@ public static class Updater
     {
         try
         {
-            // Clean up any old update leftovers from previous runs
+            
             string currentExe = Assembly.GetExecutingAssembly().Location;
             if (!string.IsNullOrEmpty(currentExe))
             {
@@ -34,13 +34,13 @@ public static class Updater
             var currentVersion = Assembly.GetExecutingAssembly().GetName().Version;
             if (currentVersion == null) return;
 
-            // Skip checking for updates on default local debug builds (1.0.0)
+            
             if (currentVersion.Major == 1 && currentVersion.Minor == 0 && currentVersion.Build == 0 && currentVersion.Revision == 0)
             {
                 return;
             }
 
-            // GitHub releases API
+            
             string response = Client.GetStringAsync("https://api.github.com/repos/meowgoober/crosstalkpatcher/releases/latest")
                 .GetAwaiter().GetResult();
 
@@ -53,7 +53,7 @@ public static class Updater
 
             if (!Version.TryParse(latestVerStr, out var latestVersion)) return;
 
-            // Compare versions
+            
             if (latestVersion > currentVersion)
             {
                 Console.WriteLine();
