@@ -2,9 +2,7 @@ using System.Text;
 
 namespace CrossTalkPatcher;
 
-/// <summary>
 ///  makes the ascii strings point to the actual servers, if you want to know why, go to https://crosstalk.im/guides/patching and look at MSN/Windows Messenger 4.7.2009 - 3001 patching guide with Hex
-/// </summary>
 public static class BinaryPatcher
 {
     public record StringPair(string Find, string Replace);
