@@ -4,19 +4,14 @@ using Newtonsoft.Json.Linq;
 
 namespace CrossTalkPatcher;
 
-/// <summary>
-/// Downloads and silently installs the latest patch release of the Python
-/// minor version that officially supports the current Windows release.
+/// Downloads and silently installs the latest patch release of the Python for each os.
 ///
 /// OS → Python minor version mapping:
 ///   Vista SP2  (6.0)      →  3.8.x   (last minor to support Vista)
 ///   Win 7 / 8  (6.1–6.2)  →  3.12.x  (last minor to support Win 7)
 ///   Win 8.1+/10/11        →  3.13.x  (current stable minor)
-///
-/// The patch number (x) is resolved live via the endoflife.date API so it
-/// stays current automatically.  Hardcoded versions are used as fallbacks
-/// when the machine is offline or the API is unreachable.
-/// </summary>
+
+
 public static class PythonInstaller
 {
     private readonly record struct PythonRelease(string Version, string X86Url, string X64Url);
