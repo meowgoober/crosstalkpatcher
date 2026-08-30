@@ -21,11 +21,10 @@ public static class PythonInstaller
     private const string FallbackWin7   = "3.12.9";
     private const string FallbackModern = "3.13.3";
 
-    /// <summary>
     /// Prompts the user, fetches the latest patch version from endoflife.date,
     /// downloads the right installer for this OS, runs it silently, then
     /// returns the path to python.exe on success or null on failure/decline.
-    /// </summary>
+    
     public static string? TryInstall()
     {
         PythonRelease release = PickRelease();
@@ -120,12 +119,11 @@ public static class PythonInstaller
         return                                    BuildRelease("3.13", FallbackModern);
     }
 
-    /// <summary>
     /// Resolves the latest patch for <paramref name="minorVer"/> via the
     /// endoflife.date API, falling back to <paramref name="fallback"/> when
     /// offline or the API is unreachable.  Constructs download URLs from the
     /// resolved version string.
-    /// </summary>
+
     private static PythonRelease BuildRelease(string minorVer, string fallback)
     {
         string version = FetchLatestPatch(minorVer) ?? fallback;
@@ -135,11 +133,11 @@ public static class PythonInstaller
             $"https://www.python.org/ftp/python/{version}/python-{version}-amd64.exe");
     }
 
-    /// <summary>
+
     /// Queries https://endoflife.date/api/python.json and returns the latest
     /// patch version string for <paramref name="minorVer"/> (e.g. "3.8"),
     /// or null if the request fails for any reason.
-    /// </summary>
+
     private static string? FetchLatestPatch(string minorVer)
     {
         try
