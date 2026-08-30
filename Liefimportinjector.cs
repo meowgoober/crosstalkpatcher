@@ -2,11 +2,10 @@ using System.Diagnostics;
 
 namespace CrossTalkPatcher;
 
-/// <summary>
 /// Wraps add_import.py instead of hand-rolling low-level PE
-/// patching in C#. LIEF is a mature, purpose-built library for exactly this, why would i do this? Maybe because im lazy, who knows?
+/// patching in C#. LIEF is a mature, purpose-built library for exactly this, why would i do this? Maybe because im lazy, who knows? or maybe because LIEF can stich programs automatically with dlls?
 /// Requires python3 with `pip install lief` available on PATH.
-/// </summary>
+
 public static class LiefImportInjector
 {
     public static bool EnsurePythonAndLief()
