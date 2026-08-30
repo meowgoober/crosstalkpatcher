@@ -1,8 +1,8 @@
 """
-add_import.py - adds a DLL import to a native (non-.NET) PE executable. (iykyk)
+add_import.py - adds a DLL import to a native (non-.NET) PE executable.
 
 this is for the crosstalk reroute patching step, forces reroute.dll to be loaded by the OS loader at startup. 
-(the dll does all the work for patching the messenger client, not this. This is supposed to be matching how the manual Stud_PE method in the guide works).
+(the dll does all the work for patching the messenger client, not this. This is supposed to be matching how the manual Stud_PE method in the guide works) but with lief.
 """
 import sys
 import lief
